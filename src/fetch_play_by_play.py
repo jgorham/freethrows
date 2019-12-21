@@ -20,7 +20,7 @@ def process_play_by_play(*, year: int, output_dir: str) -> None:
     sched = client.season_schedule(season_end_year=year)
     failed_game_descriptions = []
 
-    for game in sched[-400:]:
+    for game in sched:
         home_team = game['home_team'].name
         start_time = _convert_time_from_utc(game['start_time'])
         start_time_str = start_time.strftime('%Y-%m-%d')
