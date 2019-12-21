@@ -18,19 +18,27 @@ def _convert_time_from_utc(dt: datetime) -> datetime:
 
 def process_play_by_play(*, year: int, output_dir: str) -> None:
     sched = client.season_schedule(season_end_year=year)
+    failed_game_descriptions = []
 
-    for game in sched:
+    for game in sched[-400:]:
         home_team = game['home_team'].name
         start_time = _convert_time_from_utc(game['start_time'])
         start_time_str = start_time.strftime('%Y-%m-%d')
-        print(f"[{start_time_str}]: Pulling data for home team {home_team}")
+        game_description = f"[{start_time_str}]: Pulling data for home team {home_team}"
+        print(game_description)
 
-        play_by_play = client.play_by_play(
-            home_team=game['home_team'],
-            year=start_time.year,
-            month=start_time.month,
-            day=start_time.day,
-        )
+        try:
+            play_by_play = client.play_by_play(
+                home_team=game['home_team'],
+                year=start_time.year,
+                month=start_time.month,
+                day=start_time.day,
+            )
+        except Exception:
+            print("FAILURE! Skipping game")
+            failed_game_descriptions.append(game_description)
+            continue
+
         for play in play_by_play:
             play['date'] = start_time_str
             play['period_type'] = play['period_type'].name
@@ -44,6 +52,12 @@ def process_play_by_play(*, year: int, output_dir: str) -> None:
             index=False,
             sep='\t',
         )
+
+    # show failures
+    if failed_game_descriptions:
+        print(f"****{len(failed_game_descriptions)} games failed to parse****")
+        for description in failed_game_descriptions:
+            print(description)
 
 
 if __name__ == "__main__":
